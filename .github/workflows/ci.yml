@@ -7,7 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  library:
+    name: Library
     runs-on: ubuntu-latest
 
     services:
@@ -37,8 +38,8 @@ jobs:
 
       - run: npm run build
 
-      # Library suite: SQLite integration always, plus the PostgreSQL
-      # integration suite against the service container above.
+      # SQLite integration always, plus the PostgreSQL integration suite
+      # against the service container above.
       - run: npm test
         env:
           POSTGRES_HOST: localhost
@@ -47,13 +48,43 @@ jobs:
           POSTGRES_PASSWORD: test
           POSTGRES_DB: test
 
-      # NestJS example: real service integration tests + HTTP e2e tests.
-      # Maps the library from the dist built above.
+  example-nestjs:
+    name: NestJS example
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Build the library first so the example resolves it from dist/.
+      - run: npm ci
+      - run: npm run build
+
+      # Service integration tests + HTTP e2e tests for the NestJS example.
       - name: Install example dependencies
         working-directory: examples/nestjs
         run: npm ci
 
-      - name: Example integration & e2e tests (PostgreSQL)
+      - name: Run integration & e2e tests
         working-directory: examples/nestjs
         run: npm test
         env:

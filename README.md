@@ -252,6 +252,19 @@ POSTGRES_HOST=localhost POSTGRES_PORT=5433 POSTGRES_USER=test \
 
 > The Postgres suite uses `dropSchema` — point it only at a disposable database.
 
+## Releasing
+
+Releases are automated with [release-it](https://github.com/release-it/release-it) and the conventional-changelog plugin. From a clean `main`:
+
+```bash
+npm run release            # bump from commits, changelog, tag, GitHub release, npm publish
+npm run release -- --dry-run   # preview without changing anything
+```
+
+The version bump and `CHANGELOG.md` are derived from the conventional commit history. Publishing requires `npm login`; the GitHub release requires a `GITHUB_TOKEN`.
+
+Dependencies are kept current by [Renovate](https://docs.renovatebot.com/) (`renovate.json`), which leaves the intentionally-wide TypeORM peer range untouched.
+
 ## Prior art
 
 [`typeorm-extension`](https://github.com/tada5hi/typeorm-extension) and
