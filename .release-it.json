@@ -8,15 +8,13 @@
     "requireCleanWorkingDir": true
   },
   "github": {
-    "release": true,
-    "releaseName": "v${version}"
+    "release": false
   },
   "npm": {
-    "publish": true
+    "publish": false
   },
   "hooks": {
-    "before:init": ["npm test"],
-    "after:bump": "npm run build"
+    "before:init": ["npm test"]
   },
   "plugins": {
     "@release-it/conventional-changelog": {

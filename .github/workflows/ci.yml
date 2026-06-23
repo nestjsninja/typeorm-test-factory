@@ -36,6 +36,8 @@ jobs:
 
       - run: npm ci
 
+      - run: npm run lint
+
       - run: npm run build
 
       # SQLite integration always, plus the PostgreSQL integration suite

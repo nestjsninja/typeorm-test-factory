@@ -254,14 +254,18 @@ POSTGRES_HOST=localhost POSTGRES_PORT=5433 POSTGRES_USER=test \
 
 ## Releasing
 
-Releases are automated with [release-it](https://github.com/release-it/release-it) and the conventional-changelog plugin. From a clean `main`:
+Publishing is automated and the npm token lives **only** in GitHub Actions — never on a developer machine.
+
+From a clean `main`:
 
 ```bash
-npm run release            # bump from commits, changelog, tag, GitHub release, npm publish
+npm run release                # bump version + CHANGELOG from commits, tag, push
 npm run release -- --dry-run   # preview without changing anything
 ```
 
-The version bump and `CHANGELOG.md` are derived from the conventional commit history. Publishing requires `npm login`; the GitHub release requires a `GITHUB_TOKEN`.
+[release-it](https://github.com/release-it/release-it) (with the conventional-changelog plugin) bumps the version, updates `CHANGELOG.md`, commits, tags `v${version}`, and pushes — no npm or GitHub tokens needed locally. Pushing the tag triggers [`.github/workflows/publish.yml`](.github/workflows/publish.yml), which builds, tests, runs `npm publish --provenance`, and creates the GitHub release.
+
+**One-time setup:** add an npm **automation** token as the `NPM_TOKEN` repository secret (Settings → Secrets and variables → Actions). An automation token can publish a brand-new package, so the first release goes through CI like any other.
 
 Dependencies are kept current by [Renovate](https://docs.renovatebot.com/) (`renovate.json`), which leaves the intentionally-wide TypeORM peer range untouched.
 

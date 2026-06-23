@@ -3,7 +3,10 @@
  * For TypeORM this is usually the entity class, but a name or schema string
  * also works — we never inspect it, we just hand it to the adapter.
  */
-export type EntityTarget = Function | string | { name: string };
+export type EntityTarget =
+  | (abstract new (...args: any[]) => unknown)
+  | string
+  | { name: string };
 
 /**
  * The single seam between this library and your database.
