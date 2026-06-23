@@ -16,6 +16,14 @@
   ],
   "author": "Henrique Weiand",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nestjsninja/typeorm-test-factory.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nestjsninja/typeorm-test-factory/issues"
+  },
+  "homepage": "https://github.com/nestjsninja/typeorm-test-factory#readme",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
