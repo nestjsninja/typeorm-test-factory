@@ -1,6 +1,6 @@
 {
   "name": "typeorm-test-factory",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Version-safe test data factories for TypeORM. Define factories once, create realistic entities in integration and e2e tests — without coupling to a specific TypeORM version.",
   "keywords": [
     "typeorm",
