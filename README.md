@@ -75,9 +75,11 @@ it('lists only admins', async () => {
 
 ## API
 
+A factory is defined once and reused. `make`/`makeMany` build entities **in memory**; `create`/`createMany` **persist** them through a `Persister`. Everything is immutable — `with` and `withPersister` return new factories rather than mutating.
+
 ### `defineFactory(entity)(definition, persister?)`
 
-Defines a factory. It is **curried**: the entity type is inferred once from the class, then used to type-check the definition precisely — so union columns like `status: 'open'` check against `'open' | 'paid' | 'cancelled'` without casts, while `create()` still returns the full entity. The definition receives a context with the batch `index` (useful for sequences):
+Defines a factory. It is **curried**: the entity type is inferred once from the class, then used to type-check the definition precisely — so union columns like `status: 'open'` check against `'open' | 'paid' | 'cancelled'` without casts, while `create()` still returns the full entity. The definition receives a [`FactoryContext`](#factorycontext) with the batch `index` (useful for sequences). The `persister` is optional — see [Binding a persister](#binding-a-persister).
 
 ```ts
 const userFactory = defineFactory(User)((f) => ({
@@ -89,15 +91,57 @@ const userFactory = defineFactory(User)((f) => ({
 const orgFactory = defineFactory<Org>('orgs')((f) => ({ name: `Org ${f.index}` }));
 ```
 
+### Binding a persister
+
+A `Persister` is the one thing that writes to your database. `make`/`makeMany` never need one; `create`/`createMany` do. There are **three** ways to attach it, and calling `create()` with none bound throws a clear error telling you to bind one.
+
+```ts
+// 1. At definition time — convenient for a one-off factory.
+const userFactory = defineFactory(User)((f) => ({ /* … */ }), persister);
+
+// 2. factory.withPersister(persister) — returns a NEW factory bound to the
+//    persister, leaving the original untouched. This is the idiomatic pattern:
+//    define factories at module scope with NO persister (so they stay reusable
+//    and parallel-safe), then bind them to the connection inside each test.
+export const userFactory = defineFactory(User)((f) => ({ /* … */ })); // unbound
+// in a test:
+const persister = typeormPersister(dataSource);
+await userFactory.withPersister(persister).create();
+
+// 3. bindFactories(persister, map) — bind a whole map in one call (below).
+```
+
+### `typeormPersister(source)`
+
+Builds a `Persister` from a TypeORM `DataSource` (or `EntityManager`, or the legacy `Connection`). It is the only adapter and imports nothing from `typeorm` — it relies on the structural `getRepository(target).save(entity)` shape.
+
+```ts
+const persister = typeormPersister(dataSource);
+```
+
+### `bindFactories(persister, map)`
+
+Binds a whole map of factories to one persister at once, returning a new map of bound copies (the originals stay unbound). One call in `beforeAll`/`beforeEach`:
+
+```ts
+const { user, post } = bindFactories(persister, { user: userFactory, post: postFactory });
+await user.create();
+await post.create();
+```
+
 ### `make` / `makeMany` — in memory, no database
 
 ```ts
 const user = userFactory.make();              // a User instance, no id
-const users = userFactory.makeMany(3);        // index 0, 1, 2
-const admin = userFactory.make({ role: 'admin' });
+const users = userFactory.makeMany(3);        // FactoryContext.index 0, 1, 2
+const admin = userFactory.make({ role: 'admin' }); // overrides win
 ```
 
+Nested factories are also built in memory (recursively), with no ids.
+
 ### `create` / `createMany` — persisted
+
+Requires a bound persister. Returns the saved entity (with its generated id). `createMany` runs `create` per row so each gets its own resolved relations.
 
 ```ts
 const user = await userFactory.create();
@@ -106,19 +150,22 @@ const users = await userFactory.createMany(5, { role: 'user' });
 
 ### `with(overrides)` — reusable states
 
+Returns a **new** factory whose defaults fold in `overrides` — a frozen variant. The original is unchanged.
+
 ```ts
 const adminFactory = userFactory.with({ role: 'admin' });
-await adminFactory.create();
+await adminFactory.create();              // an admin
+await adminFactory.create({ name: 'Bo' }); // an admin named Bo
 ```
 
 ### Relations — nested factories
 
-Any field can be another factory. On `create`, the relation is persisted first and linked; on `make`, it is built in memory.
+Any object-typed field can be another factory. On `create`, the relation is persisted first and linked; on `make`, it is built in memory. Pass an explicit value to reuse an existing row instead.
 
 ```ts
 const postFactory = defineFactory(Post)(() => ({
   title: faker.lorem.sentence(),
-  author: userFactory, // ← resolved automatically
+  author: userFactory, // ← resolved automatically (recursively)
 }));
 
 const post = await postFactory.withPersister(persister).create();
@@ -129,13 +176,22 @@ const author = await userFactory.withPersister(persister).create();
 await postFactory.withPersister(persister).create({ author });
 ```
 
-### `bindFactories(persister, map)` — bind many at once
+### `FactoryContext`
+
+The definition function receives `{ index: number }` — the zero-based position within a `makeMany`/`createMany` batch. Use it for unique or sequenced values:
 
 ```ts
-const { user, post } = bindFactories(persister, { user: userFactory, post: postFactory });
-await user.create();
-await post.create();
+const userFactory = defineFactory(User)((f) => ({ email: `user${f.index}@test.dev` }));
+userFactory.makeMany(3); // user0@…, user1@…, user2@…
 ```
+
+### `Factory.is(value)` (advanced)
+
+A type guard — `true` for factory instances. It is how nested factories are detected during resolution (using a global symbol brand, so it works even across duplicate installs); exposed for custom tooling.
+
+### Types
+
+`Persister`, `EntityTarget`, `RepositoryProvider`, `FactoryBuilder`, `FactoryDefinition`, `FactoryShape`, and `FactoryContext` are all exported for annotations and for writing your own adapter against the one-method `Persister` port.
 
 ## Example: a real NestJS app
 
@@ -149,6 +205,8 @@ library in:
 Both seed with factories and isolate with a transaction-rollback helper
 ([`test/tools/transaction-context.ts`](examples/nestjs/test/tools/transaction-context.ts)),
 and run against in-memory SQLite locally or real PostgreSQL in CI.
+
+> **See it in a real app:** [nestjsninja/typeorm-test-factory-demo](https://github.com/nestjsninja/typeorm-test-factory-demo) is a standalone NestJS application that installs this package **from npm** and exercises every feature across in-memory, integration, and e2e tests.
 
 ## Test isolation (rollback & parallelism)
 
