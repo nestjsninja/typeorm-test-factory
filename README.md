@@ -53,8 +53,8 @@ let dataSource: DataSource;
 
 beforeAll(async () => {
   dataSource = await new DataSource({
-    type: 'better-sqlite3',
-    database: ':memory:',
+    type: 'sqljs', // pure-WASM SQLite — also runs in the browser (better-sqlite3 works too)
+    autoSave: false,
     entities: [User],
     synchronize: true,
   }).initialize();

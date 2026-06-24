@@ -7,8 +7,8 @@ import { OrderItem } from './order/order-item.entity';
  * One database config used by both the running app and the tests.
  *
  * If POSTGRES_HOST is set (as in CI), it connects to real PostgreSQL. Otherwise
- * it falls back to an in-memory SQLite database so the example runs anywhere
- * with zero setup.
+ * it uses sql.js — a pure-WASM SQLite that needs no native build, so the example
+ * runs anywhere with zero setup, including in the browser (StackBlitz).
  */
 export function buildDataSourceOptions(): TypeOrmModuleOptions {
   const entities = [User, Order, OrderItem];
@@ -27,8 +27,8 @@ export function buildDataSourceOptions(): TypeOrmModuleOptions {
   }
 
   return {
-    type: 'better-sqlite3',
-    database: ':memory:',
+    type: 'sqljs',
+    autoSave: false,
     entities,
     synchronize: true,
   };

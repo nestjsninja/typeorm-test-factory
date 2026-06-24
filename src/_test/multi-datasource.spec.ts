@@ -29,15 +29,15 @@ describe('multiple DataSources', () => {
 
   beforeAll(async () => {
     primary = await new DataSource({
-      type: 'better-sqlite3',
-      database: ':memory:',
+      type: 'sqljs',
+      autoSave: false,
       entities: [Account],
       synchronize: true,
     }).initialize();
 
     analytics = await new DataSource({
-      type: 'better-sqlite3',
-      database: ':memory:',
+      type: 'sqljs',
+      autoSave: false,
       entities: [AnalyticsEvent],
       synchronize: true,
     }).initialize();

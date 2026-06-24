@@ -44,8 +44,8 @@ describe('TypeORM integration (real database, in-memory SQLite)', () => {
 
   beforeAll(async () => {
     dataSource = new DataSource({
-      type: 'better-sqlite3',
-      database: ':memory:',
+      type: 'sqljs',
+      autoSave: false,
       entities: [User, Post],
       synchronize: true,
     });

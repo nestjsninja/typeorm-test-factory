@@ -18,8 +18,8 @@ describe('composition with a transaction-rollback strategy (SQLite)', () => {
 
   beforeAll(async () => {
     dataSource = await new DataSource({
-      type: 'better-sqlite3',
-      database: ':memory:',
+      type: 'sqljs',
+      autoSave: false,
       entities: [User],
       synchronize: true,
     }).initialize();

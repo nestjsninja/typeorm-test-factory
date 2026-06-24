@@ -49,16 +49,16 @@ describe('multiple named DataSources (NestJS)', () => {
       imports: [
         // default DataSource
         TypeOrmModule.forRoot({
-          type: 'better-sqlite3',
-          database: ':memory:',
+          type: 'sqljs',
+          autoSave: false,
           entities: [Account],
           synchronize: true,
         }),
         // a second, named DataSource
         TypeOrmModule.forRoot({
           name: 'analytics',
-          type: 'better-sqlite3',
-          database: ':memory:',
+          type: 'sqljs',
+          autoSave: false,
           entities: [AnalyticsEvent],
           synchronize: true,
         }),
